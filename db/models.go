@@ -4,7 +4,20 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
 type Role struct {
 	ID   int32
 	Name string
+}
+
+type User struct {
+	ID           int32
+	Email        string
+	Name         string
+	Lastname     string
+	PasswordHash []byte
+	RoleID       sql.NullInt32
 }

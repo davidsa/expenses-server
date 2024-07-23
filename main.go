@@ -29,7 +29,10 @@ func main() {
 	h := routes.NewHandler(ctx, queries)
 
 	rolesRouter := router.PathPrefix("/role").Subrouter()
-	rolesRouter.HandleFunc("/", h.RoleListHandler)
+	rolesRouter.HandleFunc("/", h.RoleListRoute)
+
+	userRouter := router.PathPrefix("/user").Subrouter()
+	userRouter.HandleFunc("/", h.UserCreateRoute)
 
 	router.HandleFunc("/", HomeHandler)
 

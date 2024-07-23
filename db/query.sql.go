@@ -7,7 +7,43 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO "user"  
+  (email, name, lastname, password_hash, role_id)
+  VALUES ($1, $2, $3, $4, $5)
+  RETURNING id, email, name, lastname, password_hash, role_id
+`
+
+type CreateUserParams struct {
+	Email        string
+	Name         string
+	Lastname     string
+	PasswordHash []byte
+	RoleID       sql.NullInt32
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Email,
+		arg.Name,
+		arg.Lastname,
+		arg.PasswordHash,
+		arg.RoleID,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.Lastname,
+		&i.PasswordHash,
+		&i.RoleID,
+	)
+	return i, err
+}
 
 const listRoles = `-- name: ListRoles :many
 SELECT id, name from role

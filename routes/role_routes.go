@@ -6,8 +6,9 @@ import (
 	"net/http"
 )
 
-func (h Handler) RoleListHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handler) RoleListRoute(w http.ResponseWriter, r *http.Request) {
 	roles, err := h.Queries.ListRoles(h.ctx)
+
 	if err != nil {
 		log.Fatal(err)
 	}

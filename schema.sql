@@ -2,3 +2,15 @@ CREATE TABLE IF NOT EXISTS role (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "user" (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  lastname VARCHAR(100) NOT NULL,
+  password_hash BYTEA NOT NULL,
+  role_id INT,
+  CONSTRAINT fk_role
+    FOREIGN KEY(role_id) 
+      REFERENCES role(id)
+);
