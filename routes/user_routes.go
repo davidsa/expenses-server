@@ -10,14 +10,14 @@ import (
 	"net/http"
 )
 
-type CreateUserPayload struct {
+type UserCreatePayload struct {
 	Name     string `json:"name"`
 	Lastname string `json:"lastname"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type CreateUserResponse struct {
+type UserCreateResponse struct {
 	ID       int32  `json:"id"`
 	Name     string `json:"name"`
 	Lastname string `json:"lastname"`
@@ -25,9 +25,18 @@ type CreateUserResponse struct {
 	RoleID   int32  `json:"role_id"`
 }
 
+type UserLoginPayload struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UserLoginResponse struct {
+	Ok bool `json:"ok"`
+}
+
 func (h Handler) UserCreateRoute(w http.ResponseWriter, r *http.Request) {
 
-	var p CreateUserPayload
+	var p UserCreatePayload
 
 	err := json.NewDecoder(r.Body).Decode(&p)
 
@@ -54,7 +63,7 @@ func (h Handler) UserCreateRoute(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.Queries.CreateUser(h.ctx, user)
 
-	response := CreateUserResponse{
+	response := UserCreateResponse{
 		ID:       result.ID,
 		Name:     result.Name,
 		Lastname: result.Lastname,
@@ -67,13 +76,98 @@ func (h Handler) UserCreateRoute(w http.ResponseWriter, r *http.Request) {
 
 		if encodeErr := json.NewEncoder(w).Encode(utils.JsonError{Error: err.Error()}); encodeErr != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
+	}
+
+	session, _ := h.store.Get(r, "session")
+
+	session.Values["user"] = response
+
+	sessionErr := session.Save(r, w)
+
+	if sessionErr != nil {
+		http.Error(w, sessionErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h Handler) UserLoginRoute(w http.ResponseWriter, r *http.Request) {
+
+	var p UserLoginPayload
+
+	err := json.NewDecoder(r.Body).Decode(&p)
+
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.Queries.FindUserByEmail(h.ctx, p.Email)
+
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(utils.JsonError{Error: "unauthorized"})
+		return
+	}
+
+	match := utils.ComparePasswords(user.PasswordHash, p.Password)
+
+	if !match {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(utils.JsonError{Error: "unauthorized"})
+		return
+	}
+
+	user_session := UserCreateResponse{
+		ID:       user.ID,
+		Name:     user.Name,
+		Lastname: user.Lastname,
+		Email:    user.Email,
+		RoleID:   user.RoleID.Int32,
+	}
+
+	session, _ := h.store.Get(r, "session")
+
+	session.Values["user"] = user_session
+
+	sessionErr := session.Save(r, w)
+
+	if sessionErr != nil {
+		http.Error(w, sessionErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := UserLoginResponse{
+		Ok: true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h Handler) UserMeRoute(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.store.Get(r, "session")
+
+	if user, ok := session.Values["user"].(UserCreateResponse); ok {
+
+		response := UserCreateResponse{
+			ID:       user.ID,
+			Email:    user.Email,
+			Name:     user.Name,
+			Lastname: user.Lastname,
+			RoleID:   user.RoleID,
+		}
+		w.Header().Set("Content-Type", "application/json")
+
+		json.NewEncoder(w).Encode(response)
+
+	} else {
+		json.NewEncoder(w).Encode(utils.JsonError{Error: "No session data"})
 	}
 }

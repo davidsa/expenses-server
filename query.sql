@@ -7,3 +7,6 @@ INSERT INTO "user"
   VALUES ($1, $2, $3, $4, $5)
   RETURNING id, name, email,lastname,role_id;
 
+-- name: FindUserByEmail :one
+SELECT  * from "user"
+  where email = $1; 

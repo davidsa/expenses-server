@@ -14,7 +14,7 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO "user"  
   (email, name, lastname, password_hash, role_id)
   VALUES ($1, $2, $3, $4, $5)
-  RETURNING id, email, name, lastname, password_hash, role_id
+  RETURNING id, name, email,lastname,role_id
 `
 
 type CreateUserParams struct {
@@ -25,7 +25,15 @@ type CreateUserParams struct {
 	RoleID       sql.NullInt32
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+type CreateUserRow struct {
+	ID       int32
+	Name     string
+	Email    string
+	Lastname string
+	RoleID   sql.NullInt32
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Email,
 		arg.Name,
@@ -33,6 +41,24 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.PasswordHash,
 		arg.RoleID,
 	)
+	var i CreateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Lastname,
+		&i.RoleID,
+	)
+	return i, err
+}
+
+const findUserByEmail = `-- name: FindUserByEmail :one
+SELECT  id, email, name, lastname, password_hash, role_id from "user"
+  where email = $1
+`
+
+func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, findUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
