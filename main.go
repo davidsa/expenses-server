@@ -8,35 +8,39 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 )
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World!!")
+	fmt.Fprintf(w, "ok")
 }
 
-func initGob() {
+func init() {
 	gob.Register(routes.UserCreateResponse{})
 }
 
 func main() {
 
-	queries, db := db.SetupDb()
+	queries, database := db.SetupDb()
 
-	defer db.Close()
+	defer database.Close()
 
 	router := mux.NewRouter()
 
 	ctx := context.Background()
 
-	initGob()
+	store, err := db.SetupSessionStore()
 
-	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer store.Close()
+
+	defer store.StopCleanup(store.Cleanup(time.Minute * 5))
 
 	h := routes.NewHandler(ctx, queries, store)
 

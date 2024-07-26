@@ -166,7 +166,6 @@ func (h Handler) UserMeRoute(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		json.NewEncoder(w).Encode(response)
-
 	} else {
 		json.NewEncoder(w).Encode(utils.JsonError{Error: "No session data"})
 	}

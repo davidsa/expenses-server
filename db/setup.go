@@ -3,11 +3,14 @@ package db
 import (
 	"database/sql"
 	"log"
+	"os"
+
+	"github.com/antonlindstrom/pgstore"
 )
 
-func SetupDb() (*Queries, *sql.DB) {
-	connStr := "postgres://postgres@localhost:5432/expenses_dev?sslmode=disable"
+var connStr = "postgres://postgres@localhost:5432/expenses_dev?sslmode=disable"
 
+func SetupDb() (*Queries, *sql.DB) {
 	database, err := sql.Open("postgres", connStr)
 
 	if err != nil {
@@ -15,4 +18,9 @@ func SetupDb() (*Queries, *sql.DB) {
 	}
 
 	return New(database), database
+}
+
+func SetupSessionStore() (*pgstore.PGStore, error) {
+	key := os.Getenv("SESSION_KEY")
+	return pgstore.NewPGStore(connStr, []byte(key))
 }

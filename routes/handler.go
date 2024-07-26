@@ -4,15 +4,15 @@ import (
 	"context"
 	"expenses/db"
 
-	"github.com/gorilla/sessions"
+	"github.com/antonlindstrom/pgstore"
 )
 
 type Handler struct {
 	ctx     context.Context
 	Queries *db.Queries
-	store   *sessions.CookieStore
+	store   *pgstore.PGStore
 }
 
-func NewHandler(ctx context.Context, queries *db.Queries, store *sessions.CookieStore) *Handler {
+func NewHandler(ctx context.Context, queries *db.Queries, store *pgstore.PGStore) *Handler {
 	return &Handler{ctx: ctx, Queries: queries, store: store}
 }
