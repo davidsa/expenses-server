@@ -22,13 +22,26 @@ func init() {
 	gob.Register(routes.UserCreateResponse{})
 }
 
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	queries, database := db.SetupDb()
 
 	defer database.Close()
-
-	router := mux.NewRouter()
 
 	ctx := context.Background()
 
@@ -41,6 +54,10 @@ func main() {
 	defer store.Close()
 
 	defer store.StopCleanup(store.Cleanup(time.Minute * 5))
+
+	router := mux.NewRouter()
+
+	handler := CORSMiddleware(router)
 
 	h := routes.NewHandler(ctx, queries, store)
 
@@ -55,7 +72,7 @@ func main() {
 	router.HandleFunc("/", HomeHandler)
 
 	server := &http.Server{
-		Handler:      router,
+		Handler:      handler,
 		Addr:         "localhost:3000",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
