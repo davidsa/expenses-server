@@ -10,6 +10,37 @@ import (
 	"database/sql"
 )
 
+const addUserToGroup = `-- name: AddUserToGroup :exec
+INSERT INTO group_user
+  (group_id, user_id, is_admin)
+  VALUES($1, $2, $3)
+`
+
+type AddUserToGroupParams struct {
+	GroupID int32
+	UserID  int32
+	IsAdmin sql.NullBool
+}
+
+func (q *Queries) AddUserToGroup(ctx context.Context, arg AddUserToGroupParams) error {
+	_, err := q.db.ExecContext(ctx, addUserToGroup, arg.GroupID, arg.UserID, arg.IsAdmin)
+	return err
+}
+
+const createGroup = `-- name: CreateGroup :one
+INSERT INTO "group"
+  (name) 
+  VALUES ($1)
+  RETURNING id, name
+`
+
+func (q *Queries) CreateGroup(ctx context.Context, name string) (Group, error) {
+	row := q.db.QueryRowContext(ctx, createGroup, name)
+	var i Group
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO "user"  
   (email, name, lastname, password_hash, role_id)
@@ -85,6 +116,49 @@ func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
 	for rows.Next() {
 		var i Role
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserGroups = `-- name: ListUserGroups :many
+SELECT id, name, group_id, user_id, is_admin From "group" as g
+  JOIN group_user as gu on g.id = gu.group_id
+  WHERE gu.user_id = $1
+`
+
+type ListUserGroupsRow struct {
+	ID      int32
+	Name    string
+	GroupID int32
+	UserID  int32
+	IsAdmin sql.NullBool
+}
+
+func (q *Queries) ListUserGroups(ctx context.Context, userID int32) ([]ListUserGroupsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserGroups, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserGroupsRow
+	for rows.Next() {
+		var i ListUserGroupsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.GroupID,
+			&i.UserID,
+			&i.IsAdmin,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

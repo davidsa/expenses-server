@@ -8,6 +8,17 @@ import (
 	"database/sql"
 )
 
+type Group struct {
+	ID   int32
+	Name string
+}
+
+type GroupUser struct {
+	GroupID int32
+	UserID  int32
+	IsAdmin sql.NullBool
+}
+
 type Role struct {
 	ID   int32
 	Name string

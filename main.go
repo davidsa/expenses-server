@@ -59,7 +59,7 @@ func main() {
 
 	handler := CORSMiddleware(router)
 
-	h := routes.NewHandler(ctx, queries, store)
+	h := routes.NewHandler(ctx, queries, store, database)
 
 	rolesRouter := router.PathPrefix("/role").Subrouter()
 	rolesRouter.HandleFunc("/", h.RoleListRoute)
@@ -69,8 +69,11 @@ func main() {
 	userRouter.HandleFunc("/login", h.UserLoginRoute)
 	userRouter.HandleFunc("/me", h.UserMeRoute)
 
-	router.HandleFunc("/", HomeHandler)
+	groupRouter := router.PathPrefix("/group").Subrouter()
+	groupRouter.HandleFunc("/", h.GroupListRoute).Methods("GET")
+	groupRouter.HandleFunc("/", h.GroupCreateRoute).Methods("POST")
 
+	router.HandleFunc("/", HomeHandler)
 	server := &http.Server{
 		Handler:      handler,
 		Addr:         "localhost:3000",

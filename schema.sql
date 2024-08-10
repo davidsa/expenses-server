@@ -14,3 +14,18 @@ CREATE TABLE IF NOT EXISTS "user" (
     FOREIGN KEY(role_id) 
       REFERENCES role(id)
 );
+
+CREATE TABLE IF NOT EXISTS "group" (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS group_user (
+  group_id INT,
+  user_id INT,
+  is_admin BOOLEAN,
+  PRIMARY KEY (group_id, user_id),
+  CONSTRAINT fk_group FOREIGN key(group_id) REFERENCES "group"(id),
+  CONSTRAINT fk_user FOREIGN key(user_id) REFERENCES "user"(id)
+);
+
